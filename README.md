@@ -8,7 +8,7 @@ repository](https://github.com/joaquintides/usingstdcpp2019) for details.
 The `usingstdcpp2019::urp` API implements an event stream API similar to
 [Rx](http://reactivex.io/). This bot is an example of integrating that API
 into the [tgbot_cpp API](https://github.com/reo7sp/tgbot-cpp) to compose
-powerfull Telegram message handling mechanisms. To do so, the example
+powerful Telegram message handling mechanisms. To do so, the example
 `bop.cpp` implements a `ReactiveBot` class that subscribes to any user
 message sent to the Telegram bot with
 `TgBot::EventBroadcaster::onAnyMessage()` and sends them through the
