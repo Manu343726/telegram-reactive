@@ -79,9 +79,15 @@ constexpr auto fromUser = [](const std::string& name)
     });
 };
 
+struct UserData
+{
+    TgBot::User::Ptr user;
+    TgBot::Chat::Chat::Ptr chat;
+};
+
 int main() {
     std::string token(std::getenv("USINGSTDCPP2019_BOT_TOKEN"));
-    std::unordered_map<std::int32_t, TgBot::User::Ptr> knownUserIds;
+    std::unordered_map<std::int32_t, UserData> knownUserIds;
 
     // ReactiveBot is both a Telegram bot and a urp trigger
     // Events are raised whenever a message arrives to the bot
@@ -94,13 +100,26 @@ int main() {
         {
             if(not knownUserIds.count(message->from->id))
             {
-                knownUserIds[message->from->id] = message->from;
+                knownUserIds[message->from->id] = UserData{message->from, message->chat};
 
                 fmt::print("Look, a new user sent me a message. {}, welcome to usingstdcpp 2019!\n",
                     getUserFullName(message->from));
+
+                bot.getApi().sendMessage(message->chat->id,
+                    "Hi! My name is usingstdcpp2019_bot. Welcome " + getUserFullName(message->from));
             }
         }
     });
+
+    auto broadcastMessage = [&](const std::string& message)
+    {
+        for(auto& keyValue : knownUserIds)
+        {
+            auto& userData = keyValue.second;
+
+            bot.getApi().sendMessage(userData.chat->id, message);
+        }
+    };
 
     // Subscript to text messages from users
     auto messages = bot | textMessages;
@@ -114,6 +133,8 @@ int main() {
                 "You know I'm a poor bot coded in one afternoon right?\n");
             bot.getApi().sendMessage(message->chat->id,
                 "I'm afraid I will not be able to respond you with anything intelligible. Sorry\n");
+
+            broadcastMessage(fmt::format("@{} says: {}", getUserFullName(message->from), message->text));
         }
     });
 
@@ -129,7 +150,7 @@ int main() {
 #ifdef YOUR_COMPILER_IS_COOL
         const auto users = knownUserIds
                          | ranges::view::values
-                         | ranges::view::transform([](TgBot::User::Ptr user){ return user->username; })
+                         | ranges::view::transform([](const UserData& userData){ return getUserFullName(userData.user); })
                          | ranges::view::transform([](const std::string& s) { return fmt::format("@{}\n", s); })
                          | ranges::action::join
                          | ranges::to_<std::string>();
@@ -138,7 +159,7 @@ int main() {
 
         for(const auto& keyValue : knownUserIds)
         {
-            users += fmt::format("@{}\n", keyValue.second->username);
+            users += fmt::format("@{}\n", getUserFullName(keyValue.second.user));
         }
 #endif // YOUR_COMPILER_IS_COOL
 
@@ -149,7 +170,7 @@ int main() {
         }
 
         bot.getApi().sendMessage(message->chat->id,
-            "I'm glad you asked! This is the list of users that already talked with me:\n");
+            "I'm glad you asked! This is the list of users that already talked to me:\n");
         bot.getApi().sendMessage(message->chat->id, users);
     });
 
@@ -171,6 +192,8 @@ int main() {
 
         fmt::print("Here's Manu trolling me again with weird commands... \"{}\" ? What is that supposed to mean?\n",
             message->text.substr(1));
+
+        broadcastMessage(fmt::format("LOL Manu tried to fool me with command \"{}\"!", message->text));
     });
 
     std::signal(SIGINT, [](int s) {
