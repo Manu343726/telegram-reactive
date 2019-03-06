@@ -5,8 +5,12 @@
 #include <fmt/format.h>
 #include <unordered_map>
 #include <sstream>
+
+#ifdef YOUR_COMPILER_IS_COOL
 #include <range/v3/view.hpp>
 #include <range/v3/action.hpp>
+#endif // YOUR_COMPILER_IS_COOL
+
 #include <usingstdcpp2019/urp.hpp>
 
 std::string getUserFullName(const TgBot::User::Ptr user)
@@ -122,12 +126,21 @@ int main() {
             return;
         }
 
+#ifdef YOUR_COMPILER_IS_COOL
         const auto users = knownUserIds
                          | ranges::view::values
                          | ranges::view::transform([](TgBot::User::Ptr user){ return user->username; })
                          | ranges::view::transform([](const std::string& s) { return fmt::format("@{}\n", s); })
                          | ranges::action::join
                          | ranges::to_<std::string>();
+#else
+        std::string users;
+
+        for(const auto& keyValue : knownUserIds)
+        {
+            users += fmt::format("@{}\n", keyValue.second->username);
+        }
+#endif // YOUR_COMPILER_IS_COOL
 
         if(message->from)
         {
